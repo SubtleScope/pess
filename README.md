@@ -10,22 +10,22 @@
  - $ ./daily_backup.sh
 
 ## TODO
- ### Bugs:
- - Backup shell errors, needs to be worked on
- - Generated Scripts may need some work, polishing, fixing
- - Copying .history/.bash_history every run is a little excessive.
+### Bugs:
+   - Backup shell errors, needs to be worked on
+   - Generated Scripts may need some work, polishing, fixing
+   - Copying .history/.bash_history every run is a little excessive.
 
- ### Feature Requests:
- - Create variations of th script to match the level of threat actor
- - e.g. - level 0/1 - Script Kiddie, no tracks covering
- -        level X - Quiet, no history deletion, logs modified, etc. 
- - Use ICMPShell
- - Encrypt nc/shell traffic
+### Feature Requests:
+   - Create variations of th script to match the level of threat actor
+   - e.g. - level 0/1 - Script Kiddie, no tracks covering
+   -        level X - Quiet, no history deletion, logs modified, etc. 
+   - Use ICMPShell
+   - Encrypt nc/shell traffic
 
- ### Cleanup:
- - Fix formatting
- - Add comments/Remove comments
- - Speed up processing time.
+### Cleanup:
+   - Fix formatting
+   - Add comments/Remove comments
+   - Speed up processing time.
 
 ## Acknowledgements/Contributors
   - Special thanks to Justin Wray (Synister Syntax)
