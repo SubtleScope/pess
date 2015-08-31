@@ -9,6 +9,9 @@
  - $ chmod u+x daily_backup.sh
  - $ ./daily_backup.sh
 
+ - Test snort.php
+ - -> $ curl -d "eFh4R2VuPE93bmVkIEJ5IEcwZHoxbGw0PkdlbnhYeA==" -A "H4x0r Lit3 - Ph0n3H0m3 v1.0"  http://localhost/snort.php
+
 ## TODO
 ### Bugs:
    - Backup shell errors, needs to be worked on
