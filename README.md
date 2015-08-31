@@ -16,7 +16,8 @@
 ### Bugs:
    - Backup shell errors, needs to be worked on
    - Generated Scripts may need some work, polishing, fixing
-   - Copying .history/.bash_history every run is a little excessive.
+   - Copying .history/.bash_history every run is a little excessive
+   - Fix script to check for addUser command from snort.php and fix script to execute the command
 
 ### Feature Requests:
    - Create variations of th script to match the level of threat actor
