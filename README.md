@@ -4,12 +4,12 @@
  - Kali 1.1.0, CentOS 6.5, Ubuntu 14.04.2
 
 ## Running the scripts
- - $ mkdir /tmp/.root/.home/.user/
- - $ cp daily_backup.sh /tmp/.root/.home/.user/
+ - $ mkdir -p /tmp/.root/.home/.user/
+ - $ mv daily_backup.sh /tmp/.root/.home/.user/
  - $ chmod u+x daily_backup.sh
- - $ ./daily_backup.sh
+ - $ ./daily_backup.sh -i "Obfuscated IP"
 
- - Test snort.php
+ - You can test snort.php with the following
  - -> $ curl -d "eFh4R2VuPE93bmVkIEJ5IEcwZHoxbGw0PkdlbnhYeA==" -A "H4x0r Lit3 - Ph0n3H0m3 v1.0"  http://localhost/snort.php
 
 ## TODO
@@ -26,8 +26,8 @@
    - Create variations of th script to match the level of threat actor
    - e.g. - level 0/1 - Script Kiddie, no tracks covering
    -        level X - Quiet, no history deletion, logs modified, etc. 
-   - Use ICMPShell
-   - Encrypt nc/shell traffic
+   - Use ICMPShell?
+   - Encrypt nc/shell traffic?
 
 ### Cleanup:
    - Fix formatting
