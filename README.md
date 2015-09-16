@@ -18,6 +18,9 @@
    - Generated Scripts may need some work, polishing, fixing
    - Copying .history/.bash_history every run is a little excessive
    - Fix script to check for addUser command from snort.php and fix script to execute the command
+   - Took out bash listeners since I cannot background the bash listeners
+   - Took out netcat listners due to issues (Will fix and add in later)
+   - [De]obsufscation of IP Address is broken, temporarily taken out until fixed -- Normal Deobf/Obf functions work
 
 ### Feature Requests:
    - Create variations of th script to match the level of threat actor

