@@ -992,6 +992,8 @@ checkBash() {
 
 # Clean up history on the target
 clearHist() {
+   unset HISTFILE HISTFILESIZE HISTSIZE
+
    echo -e "\t* [${YELLOW}INFO${END}] => Clearing history..."
  
    timestamp1=$(getTime "/root/.history")
